@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVANCES DE OBRA</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  /* ═══════════════════════════════════════════
+     TOKENS — paleta ejecutiva neutro-sobria
+  ═══════════════════════════════════════════ */
+  :root {
+    --bg-base:        #F4F5F7;
+    --bg-panel:       #FFFFFF;
+    --bg-header:      #1C2333;
+    --bg-subheader:   #243046;
+    --border:         #DDE1E8;
+    --border-strong:  #B8BEC9;
+    --text-primary:   #1C2333;
+    --text-secondary: #5A6478;
+    --text-muted:     #8C96A8;
+    --text-light:     #FFFFFF;
+    --accent:         #3B6FD4;
+    --accent-light:   #EEF2FB;
+
+    /* Status colors */
+    --c-malo:         #D93737;
+    --c-bajo:         #E07C2F;
+    --c-optimo:       #2E9E5B;
+    --c-terminado:    #2E9E5B;
+    --c-default:      #E0B82F;
+
+    --shadow-sm:      0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md:      0 4px 12px rgba(0,0,0,0.10);
+    --radius-sm:      4px;
+    --radius-md:      8px;
+    --font-main:      'Inter', sans-serif;
+    --font-mono:      'Roboto Mono', monospace;
+    --sidebar-w:      300px;
+    --right-w:        280px;
+    --header-h:       56px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-main);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ─────────────────────────────── */
+  header {
+    background: var(--bg-header);
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    border-bottom: 2px solid var(--accent);
+    z-index: 1000;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-logo svg { width:18px; height:18px; fill:white; }
+  header h1 {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-light);
+  }
+  header h1 span {
+    color: #7FA8F5;
+    font-weight: 300;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7FA8F5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(59,111,212,0.18);
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(59,111,212,0.35);
+  }
+  #total-counter {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(255,255,255,0.65);
+  }
+  #total-counter strong { color: white; font-size:15px; }
+
+  /* ── BODY LAYOUT ─────────────────────────── */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── LEFT SIDEBAR ────────────────────────── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .sidebar-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sidebar-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* Filter groups */
+  .filter-group { margin-bottom: 12px; }
+  .filter-group:last-child { margin-bottom: 0; }
+  .filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: block;
+  }
+  .filter-select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 12px;
+    color: var(--text-primary);
+    background: var(--bg-base);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .filter-select:focus { outline: none; border-color: var(--accent); }
+  .filter-select:hover { border-color: var(--border-strong); }
+
+  .filter-search {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-primary);
+    background: var(--bg-base);
+    transition: border-color 0.15s;
+  }
+  .filter-search:focus { outline: none; border-color: var(--accent); }
+  .filter-search::placeholder { color: var(--text-muted); }
+
+  /* Status pills filter */
+  .status-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    user-select: none;
+  }
+  .status-pill:hover { border-color: var(--border-strong); }
+  .status-pill.active { color: var(--text-primary); }
+  .status-pill .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-pill .pill-count {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(0,0,0,0.07);
+    padding: 1px 6px;
+    border-radius: 10px;
+  }
+  .status-pill[data-status="MALO"] .dot    { background: var(--c-malo); }
+  .status-pill[data-status="BAJO"] .dot    { background: var(--c-bajo); }
+  .status-pill[data-status="OPTIMO"] .dot  { background: var(--c-optimo); }
+  .status-pill[data-status="TODOS"] .dot   { background: linear-gradient(135deg,var(--c-malo) 33%,var(--c-bajo) 66%,var(--c-optimo)); }
+  .status-pill[data-status="MALO"].active    { border-color: var(--c-malo);    background: rgba(217,55,55,0.08); }
+  .status-pill[data-status="BAJO"].active    { border-color: var(--c-bajo);    background: rgba(224,124,47,0.08); }
+  .status-pill[data-status="OPTIMO"].active  { border-color: var(--c-optimo);  background: rgba(46,158,91,0.08); }
+  .status-pill[data-status="TODOS"].active   { border-color: var(--accent);     background: var(--accent-light); }
+
+  /* Reset button */
+  .btn-reset {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .btn-reset:hover {
+    background: var(--bg-base);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  /* Stats in sidebar */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .stat-val {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 3px;
+  }
+  .stat-card .stat-lbl {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .stat-card.c-malo  .stat-val { color: var(--c-malo); }
+  .stat-card.c-bajo  .stat-val { color: var(--c-bajo); }
+  .stat-card.c-optimo .stat-val { color: var(--c-optimo); }
+
+  /* Sidebar results list */
+  #results-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  #results-list::-webkit-scrollbar { width: 4px; }
+  #results-list::-webkit-scrollbar-track { background: transparent; }
+  #results-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .result-item {
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.12s;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .result-item:hover {
+    background: var(--bg-base);
+    border-color: var(--border);
+  }
+  .result-item .ri-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .result-item .ri-cct {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+  }
+  .result-item .ri-proj {
+    font-size: 9px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 80px;
+  }
+  .result-item .ri-status {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+  #results-header {
+    padding: 8px 10px 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  #no-results {
+    display: none;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  /* ── MAP CONTAINER ───────────────────────── */
+  #map-wrapper {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #map {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  #map:active { cursor: grabbing; }
+  /* Restore pointer cursor on markers and cluster icons */
+  .leaflet-marker-icon,
+  .leaflet-marker-pane svg,
+  .leaflet-marker-pane div {
+    cursor: pointer !important;
+  }
+  /* Ensure Leaflet container never hides the cursor */
+  .leaflet-container {
+    cursor: grab !important;
+  }
+  .leaflet-container:active {
+    cursor: grabbing !important;
+  }
+  .leaflet-dragging .leaflet-container,
+  .leaflet-dragging .leaflet-container * {
+    cursor: grabbing !important;
+  }
+
+  /* Layer control override */
+  .leaflet-control-layers {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-md) !important;
+    font-family: var(--font-main) !important;
+    font-size: 12px !important;
+  }
+
+  /* Map overlay badge */
+  #map-info-badge {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(28,35,51,0.88);
+    color: white;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 20px;
+    z-index: 500;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+
+  /* ── RIGHT PANEL ─────────────────────────── */
+  #right-panel {
+    width: var(--right-w);
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+    box-shadow: var(--shadow-sm);
+  }
+  #right-panel::-webkit-scrollbar { width: 4px; }
+  #right-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .rp-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rp-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rp-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* Donut chart */
+  #chart-container {
+    position: relative;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #donut-label {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
+  }
+  #donut-label .dl-num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+  }
+  #donut-label .dl-txt {
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Legend */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 11px;
+  }
+  .legend-swatch {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-label { color: var(--text-secondary); flex: 1; }
+  .legend-val {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .legend-pct {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* Bar chart horizontal */
+  .bar-row {
+    margin-bottom: 10px;
+  }
+  .bar-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  .bar-meta strong {
+    font-weight: 600;
+    font-size: 10px;
+    color: var(--text-primary);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bar-meta span {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .bar-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* Selected feature panel */
+  #selected-panel {
+    display: none;
+  }
+  #selected-panel.visible { display: block; }
+  .sp-field {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+  .sp-key {
+    font-weight: 600;
+    color: var(--text-muted);
+    min-width: 80px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-top: 1px;
+  }
+  .sp-val {
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .sp-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  .avance-bar {
+    margin-top: 4px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .avance-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+  }
+  #sp-placeholder {
+    text-align: center;
+    padding: 20px 16px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  #sp-placeholder .ph-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    opacity: 0.4;
+  }
+
+  /* Popup styles */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .leaflet-popup-content {
+    margin: 0 !important;
+    width: 240px !important;
+  }
+  .leaflet-popup-tip { background: white !important; }
+
+  .popup-header {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .popup-cct {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+  }
+  .popup-body {
+    padding: 10px 14px;
+    background: white;
+  }
+  .popup-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .popup-row:last-child { margin-bottom: 0; }
+  .popup-key {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .popup-val {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: right;
+    max-width: 130px;
+  }
+  .popup-avance-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .popup-avance-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+
+  /* Tooltip */
+  .custom-tooltip {
+    background: rgba(28,35,51,0.9) !important;
+    border: none !important;
+    color: white !important;
+    font-family: var(--font-mono) !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    padding: 4px 8px !important;
+    border-radius: 4px !important;
+    white-space: nowrap !important;
+    box-shadow: var(--shadow-sm) !important;
+  }
+  .custom-tooltip::before { display: none !important; }
+
+  /* Scrollbar global */
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  /* ── FILTER ACTIVE BADGE ────────────────────────── */
+  #filter-badge {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    background: var(--accent-light);
+    border: 1px solid rgba(59,111,212,0.25);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  #filter-badge .fb-icon { font-size: 11px; margin-right: 2px; }
+  #filter-badge .fb-tag {
+    background: var(--accent);
+    color: white;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  /* ── COLLAPSIBLE PANELS ──────────────────────── */
+  .collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .collapsible-header:hover { background: var(--bg-base); }
+  .collapsible-header .ch-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .collapsible-header .ch-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 12px;
+    background: var(--accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .collapsible-header .ch-arrow {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+  }
+  .collapsible-header .ch-arrow svg {
+    width: 10px; height: 10px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .collapsible-header.collapsed .ch-arrow { transform: rotate(-90deg); }
+
+  .collapsible-body {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+    max-height: 2000px;
+    opacity: 1;
+  }
+  .collapsible-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+  }
+  .collapsible-body-inner {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Right panel collapsible */
+  .rp-collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .rp-collapsible-header:hover { background: var(--bg-base); }
+  .rp-collapsible-header .rp-title {
+    margin-bottom: 0;
+  }
+  .rp-collapsible-header .ch-arrow {
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+  }
+  .rp-collapsible-header .ch-arrow svg {
+    width: 10px; height: 10px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .rp-collapsible-header.collapsed .ch-arrow { transform: rotate(-90deg); }
+  .rp-collapsible-body {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+    max-height: 2000px;
+    opacity: 1;
+  }
+  .rp-collapsible-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+  }
+  .rp-collapsible-body .rp-section {
+    border-bottom: none;
+  }
+  /* ── UPLOAD BUTTON ───────────────────────────── */
+  #btn-upload-wrap { position: relative; }
+  #btn-upload {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: var(--radius-sm);
+    color: rgba(255,255,255,0.85);
+    font-family: var(--font-main);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  #btn-upload:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
+  #btn-upload svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  #file-input { display:none; }
+
+  /* Drop overlay */
+  #drop-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28,35,51,0.85);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #drop-overlay.visible { display: flex; }
+  #drop-box {
+    border: 3px dashed rgba(59,111,212,0.7);
+    border-radius: 16px;
+    padding: 60px 80px;
+    text-align: center;
+    color: white;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  #drop-box.drag-over { border-color: #7FA8F5; background: rgba(59,111,212,0.15); }
+  #drop-box .do-icon { font-size: 48px; margin-bottom: 16px; }
+  #drop-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.05em; }
+  #drop-box p  { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 20px; }
+  #drop-box .do-formats {
+    display: flex; gap: 8px; justify-content: center;
+  }
+  #drop-box .do-fmt {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.8);
+  }
+  #drop-close {
+    position: absolute; top: 20px; right: 24px;
+    background: none; border: none; color: rgba(255,255,255,0.5);
+    font-size: 24px; cursor: pointer; line-height: 1;
+  }
+  #drop-close:hover { color: white; }
+
+  /* Toast notification */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1C2333; color: white;
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 10000; opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+  #toast.ok   { border-left: 4px solid #2E9E5B; }
+  #toast.err  { border-left: 4px solid #D93737; }
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══════════════════════════════════ -->
+<header>
+  <div class="header-left">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </div>
+    <h1>AVANCES <span>DE OBRA</span></h1>
+  </div>
+  <div class="header-right">
+    <div id="total-counter"><strong id="visible-count">38</strong> / <span id="total-fixed">38</span> planteles</div>
+    <!-- Botón cargar datos -->
+    <div id="btn-upload-wrap">
+      <button id="btn-upload">
+        <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Cargar datos
+      </button>
+      <input type="file" id="file-input" accept=".csv,.xlsx,.xls"/>
+    </div>
+    <div class="header-badge">Sistema de Monitoreo</div>
+  </div>
+</header>
+
+<!-- Drop overlay -->
+<div id="drop-overlay">
+  <button id="drop-close">×</button>
+  <div id="drop-box">
+    <div class="do-icon">📂</div>
+    <h2>Arrastra tu archivo aquí</h2>
+    <p>o haz clic en "Cargar datos" y selecciónalo</p>
+    <div class="do-formats">
+      <span class="do-fmt">CSV</span>
+      <span class="do-fmt">XLSX</span>
+      <span class="do-fmt">XLS</span>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ═══ APP BODY ══════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- ─── LEFT SIDEBAR ─────────────────────────── -->
+  <aside id="sidebar">
+
+    <!-- FILTERS — colapsable -->
+    <div class="collapsible-header" id="toggle-filters">
+      <span class="ch-title">Filtros</span>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="collapsible-body" id="body-filters">
+      <div class="collapsible-body-inner">
+        <div class="filter-group">
+          <label class="filter-label">Proyecto</label>
+          <select class="filter-select" id="f-proyecto">
+            <option value="">Todos los proyectos</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Contratista</label>
+          <select class="filter-select" id="f-contratista">
+            <option value="">Todos los contratistas</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Buscar CCT</label>
+          <input type="text" class="filter-search" id="f-cct" placeholder="Ej. 12DES0011A" maxlength="30"/>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Estatus</label>
+          <div class="status-pills">
+            <div class="status-pill active" data-status="TODOS">
+              <span class="dot" style="background:linear-gradient(135deg,#D93737 0%,#D4A017 50%,#1A7A45 100%);"></span> Todos
+              <span class="pill-count" id="pc-todos">38</span>
+            </div>
+            <div class="status-pill" data-status="BAJO">
+              <span class="dot" style="background:#D93737;"></span> Bajo (0–20%)
+              <span class="pill-count" id="pc-bajo">–</span>
+            </div>
+            <div class="status-pill" data-status="MEDIO">
+              <span class="dot" style="background:#E07C2F;"></span> Medio (20–40%)
+              <span class="pill-count" id="pc-medio">–</span>
+            </div>
+            <div class="status-pill" data-status="BUENO">
+              <span class="dot" style="background:#D4A017;"></span> Bueno (40–60%)
+              <span class="pill-count" id="pc-bueno">–</span>
+            </div>
+            <div class="status-pill" data-status="AVANZADO">
+              <span class="dot" style="background:#5BA83A;"></span> Avanzado (60–80%)
+              <span class="pill-count" id="pc-avanzado">–</span>
+            </div>
+            <div class="status-pill" data-status="OPTIMO">
+              <span class="dot" style="background:#2E9E5B;"></span> Óptimo (80–98%)
+              <span class="pill-count" id="pc-optimo">–</span>
+            </div>
+            <div class="status-pill" data-status="TERMINADO">
+              <span class="dot" style="background:#1A7A45;"></span> Terminado (>98%)
+              <span class="pill-count" id="pc-terminado">–</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="btn-reset">↺ Limpiar filtros</button>
+      </div>
+    </div>
+
+    <!-- RESULTS LIST — colapsable -->
+    <div class="collapsible-header" id="toggle-results">
+      <span class="ch-title">Planteles visibles</span>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="collapsible-body" id="body-results" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+      <div id="results-list" style="flex:1;overflow-y:auto;padding:8px;">
+        <div id="no-results">Sin resultados para los filtros aplicados.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── MAP ──────────────────────────────────── -->
+  <div id="map-wrapper">
+    <div id="map"></div>
+    <div id="map-info-badge" id="map-info-badge">Haga clic en un marcador para ver detalles</div>
+  </div>
+
+  <!-- ─── RIGHT PANEL ───────────────────────────── -->
+  <aside id="right-panel">
+
+    <!-- DONUT CHART — colapsable -->
+    <div class="rp-collapsible-header" id="toggle-donut">
+      <div class="rp-title">Distribución por Estatus</div>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="rp-collapsible-body" id="body-donut">
+      <div class="rp-section">
+        <!-- Badge de filtros activos -->
+        <div id="filter-badge" style="display:none;"></div>
+        <div id="chart-container">
+          <canvas id="statusChart" width="160" height="160"></canvas>
+          <div id="donut-label">
+            <div class="dl-num" id="dl-total">38</div>
+            <div class="dl-txt">Planteles</div>
+          </div>
+        </div>
+        <div id="legend-container"></div>
+      </div>
+    </div>
+
+    <!-- CONTRATISTAS CHART — colapsable -->
+    <div class="rp-collapsible-header" id="toggle-contratistas">
+      <div class="rp-title">% Avance por Contratista</div>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="rp-collapsible-body" id="body-contratistas">
+      <div class="rp-section">
+        <div id="contratistas-bars"></div>
+      </div>
+    </div>
+
+    <!-- PROYECTOS CHART — colapsable -->
+    <div class="rp-collapsible-header" id="toggle-proyectos">
+      <div class="rp-title">% Avance por Proyecto</div>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="rp-collapsible-body" id="body-proyectos">
+      <div class="rp-section">
+        <div id="proyectos-bars"></div>
+      </div>
+    </div>
+
+    <!-- SELECTED DETAILS — colapsable -->
+    <div class="rp-collapsible-header" id="toggle-detalle">
+      <div class="rp-title">Detalle del Plantel</div>
+      <span class="ch-arrow"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></span>
+    </div>
+    <div class="rp-collapsible-body" id="body-detalle">
+      <div class="rp-section" id="selected-panel" style="display:none;">
+        <div id="sp-content"></div>
+      </div>
+      <div class="rp-section" id="sp-placeholder-section">
+        <div id="sp-placeholder">
+          <div class="ph-icon">📍</div>
+          Selecciona un plantel en el mapa para ver su información detallada.
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</div>
+
+<!-- ═══ SCRIPTS ═══════════════════════════════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script>
+// ─── DATA ─────────────────────────────────────────
+const DATA = [{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DES0037I","VALOR":"$2,219,697.30","ESTIMADO":"$-","AVANCE":"0%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8329612043868,"Y":16.8992028912986},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12DES0179G","VALOR":"$1,679,313.01","ESTIMADO":"$1,559,966.25","AVANCE":"93%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.9723685556818,"Y":16.9658709015167},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DES0242S","VALOR":"$1,486,250.62","ESTIMADO":"$16,386.86","AVANCE":"1%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8334353746025,"Y":16.928022955648},{"CONTRATO":"ACA4-NICHO-TIB-001","PROYECTO":"ACAPULCO 04","CONTRATISTA":"TIERRA BLANCA","CCT":"12DES0243R","VALOR":"$7,962,896.96","ESTIMADO":"$5,371,291.94","AVANCE":"67%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8023463141843,"Y":16.8327891082464},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DJN0743C","VALOR":"$959,248.30","ESTIMADO":"$196,742.28","AVANCE":"21%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7788763575462,"Y":16.830033927269},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DJN5871F","VALOR":"$820,807.83","ESTIMADO":"$255,443.08","AVANCE":"31%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7594921848798,"Y":16.7662772893184},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPB1202D","VALOR":"$792,657.04","ESTIMADO":"$24,684.19","AVANCE":"3%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8479618371498,"Y":16.9166803167489},{"CONTRATO":"ACA4-NICHO-TIB-001","PROYECTO":"ACAPULCO 04","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR0029G","VALOR":"$2,545,686.74","ESTIMADO":"$1,187,912.62","AVANCE":"47%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8031306383049,"Y":16.8300866301389},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR0525F","VALOR":"$990,056.53","ESTIMADO":"$-","AVANCE":"0%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8248119661557,"Y":16.883232274973},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR0527D","VALOR":"$1,038,626.02","ESTIMADO":"$56,553.11","AVANCE":"5%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.815629341565,"Y":16.896911113401},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR1121U","VALOR":"$1,670,534.43","ESTIMADO":"$67,626.81","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8214257828827,"Y":16.8789503542271},{"CONTRATO":"COY2-NICHO-TIB-001","PROYECTO":"COYUCA 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR1322R","VALOR":"$4,262,911.93","ESTIMADO":"$2,703,140.74","AVANCE":"63%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.103315002477,"Y":16.9752285346249},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR1352L","VALOR":"$2,375,834.04","ESTIMADO":"$1,535,948.86","AVANCE":"65%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7812924938611,"Y":16.7794042881422},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR2366V","VALOR":"$1,824,144.83","ESTIMADO":"$68,355.34","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7409904251042,"Y":16.7492967447881},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR2372F","VALOR":"$2,333,999.66","ESTIMADO":"$1,147,834.50","AVANCE":"49%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7802593164617,"Y":16.830240160238},{"CONTRATO":"COY2-NICHO-TIB-001","PROYECTO":"COYUCA 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR2970B","VALOR":"$1,516,315.04","ESTIMADO":"$1,148,907.65","AVANCE":"76%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.090060780827,"Y":16.9975451622446},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5305B","VALOR":"$1,401,568.61","ESTIMADO":"$65,697.22","AVANCE":"5%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8222370465091,"Y":16.8962472348319},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5334X","VALOR":"$1,841,779.56","ESTIMADO":"$69,234.97","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.824500898175,"Y":16.8856095517204},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5335W","VALOR":"$1,246,560.34","ESTIMADO":"$65,844.71","AVANCE":"5%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8286244152774,"Y":16.8921742057135},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5598F","VALOR":"$1,702,094.55","ESTIMADO":"$67,833.39","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.842428478405,"Y":16.8929468219993},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5644A","VALOR":"$873,757.98","ESTIMADO":"$-","AVANCE":"0%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8433547065424,"Y":16.9180189535106},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5689X","VALOR":"$3,730,569.28","ESTIMADO":"$43,784.64","AVANCE":"1%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8127181207601,"Y":16.9002096752313},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5757D","VALOR":"$1,911,718.05","ESTIMADO":"$448,817.46","AVANCE":"23%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7689978625523,"Y":16.7747460609098},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5762P","VALOR":"$1,769,073.07","ESTIMADO":"$444,202.87","AVANCE":"25%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7599513363914,"Y":16.7666450833204},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5779P","VALOR":"$633,506.70","ESTIMADO":"$37,731.08","AVANCE":"6%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.6128764045207,"Y":16.7157840932935},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5789W","VALOR":"$3,485,461.20","ESTIMADO":"$515,576.33","AVANCE":"15%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7045450172184,"Y":16.8242978633004},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DPR5927H","VALOR":"$2,212,189.80","ESTIMADO":"$809,265.09","AVANCE":"37%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8010581914816,"Y":16.7986832350484},{"CONTRATO":"COY2-NICHO-TIB-001","PROYECTO":"COYUCA 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DST0029S","VALOR":"$1,666,119.02","ESTIMADO":"$988,272.01","AVANCE":"59%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.085312105879,"Y":17.0104006785244},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DST0101L","VALOR":"$4,239,994.96","ESTIMADO":"$1,904,936.44","AVANCE":"45%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7804429271923,"Y":16.7789397971004},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DST0253Q","VALOR":"$2,511,595.23","ESTIMADO":"$109,602.38","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.797690231488,"Y":16.7988428924922},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12DTV0209Q","VALOR":"$1,833,680.55","ESTIMADO":"$608,959.86","AVANCE":"33%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7655699239913,"Y":16.8703443613416},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12DTV0272S","VALOR":"$1,402,803.51","ESTIMADO":"$1,494,115.15","AVANCE":"107%","STATUS":"TERMINADO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.9473205690082,"Y":16.9467546636696},{"CONTRATO":"ACA2-NICHO-TIB-001","PROYECTO":"ACAPULCO 02","CONTRATISTA":"TIERRA BLANCA","CCT":"12DTV0987N","VALOR":"$1,794,148.42","ESTIMADO":"$64,641.36","AVANCE":"4%","STATUS":"MALO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8611978263456,"Y":16.9018996118406},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12EJN0064V","VALOR":"$1,446,171.50","ESTIMADO":"$978,094.78","AVANCE":"68%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.090143790065,"Y":17.0092444703439},{"CONTRATO":"ACA5-BAL-TIB-001","PROYECTO":"ACAPULCO 05","CONTRATISTA":"TIERRA BLANCA","CCT":"12KJN1461L","VALOR":"$699,025.60","ESTIMADO":"$279,289.99","AVANCE":"40%","STATUS":"BAJO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.7028614726926,"Y":16.8232485666293},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12KTV0161X","VALOR":"$475,331.02","ESTIMADO":"$406,433.92","AVANCE":"86%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.181051083921,"Y":17.2240559294967},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12KTV0162W","VALOR":"$444,965.22","ESTIMADO":"$405,465.98","AVANCE":"91%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-99.8903836160648,"Y":16.9980590182875},{"CONTRATO":"COY1-PNF-TIB-001","PROYECTO":"COYUCA 01","CONTRATISTA":"TIERRA BLANCA","CCT":"12KTV0194O","VALOR":"$933,914.33","ESTIMADO":"$857,695.63","AVANCE":"92%","STATUS":"OPTIMO","ACTIVIDADES":"ACTIVO","COMENTARIOS":"","X":-100.173886261837,"Y":17.1413758055737}];
+
+// ─── CONFIG — escala de 6 niveles basada en % AVANCE ──────────────────────
+// 0–20  → BAJO      🔴 rojo
+// 20–40 → MEDIO     🟠 naranja
+// 40–60 → BUENO     🟡 amarillo-ámbar
+// 60–80 → AVANZADO  🟢 verde claro
+// 80–98 → OPTIMO    🟢 verde
+// >98   → TERMINADO 🟢 verde oscuro
+const NIVEL_CONFIG = [
+  { key: 'BAJO',      label: 'Bajo',      min:   0, max:  20, color: '#D93737', bg: 'rgba(217,55,55,0.90)'   },
+  { key: 'MEDIO',     label: 'Medio',     min:  20, max:  40, color: '#E07C2F', bg: 'rgba(224,124,47,0.90)'  },
+  { key: 'BUENO',     label: 'Bueno',     min:  40, max:  60, color: '#D4A017', bg: 'rgba(212,160,23,0.90)'  },
+  { key: 'AVANZADO',  label: 'Avanzado',  min:  60, max:  80, color: '#87b944', bg: 'rgba(110, 187, 78, 0.9)'   },
+  { key: 'OPTIMO',    label: 'Óptimo',    min:  80, max:  98, color: '#2E9E5B', bg: 'rgba(46,158,91,0.90)'   },
+  { key: 'TERMINADO', label: 'Terminado', min:  98, max: 999, color: '#0f6837', bg: 'rgba(24, 99, 57, 0.9)'   },
+];
+
+// Clasifica un registro por su % AVANCE numérico, ignorando el STATUS del CSV
+// Si el registro no tiene un % AVANCE válido, mantiene el STATUS original del CSV
+function clasificar(d) {
+  const pct = parseInt(d.AVANCE) || 0;
+  for (const n of NIVEL_CONFIG) {
+    if (pct >= n.min && pct < n.max) return n.key;
+    if (n.max === 999 && pct >= n.min) return n.key;
+  }
+  return d.STATUS; // fallback al STATUS del CSV
+}
+
+function getColor(status) {
+  const cfg = NIVEL_CONFIG.find(n => n.key === status);
+  return cfg ? cfg.color : '#8C96A8';
+}
+function getBg(status) {
+  const cfg = NIVEL_CONFIG.find(n => n.key === status);
+  return cfg ? cfg.bg : 'rgba(140,150,168,0.90)';
+}
+
+// ─── MAP INIT ─────────────────────────────────────
+const map = L.map('map', {
+  center: [16.888, -99.855],
+  zoom: 10,
+  zoomControl: false
+});
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// Base layers
+const satellite = L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { attribution: 'Esri World Imagery', maxZoom: 19 }
+);
+const osm = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap contributors', maxZoom: 19 }
+);
+const sobria = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  { attribution: '© CARTO', maxZoom: 19 }
+);
+
+sobria.addTo(map);
+
+L.control.layers(
+  { "🗺 CartoDB (Sobria)": sobria, "🌍 OpenStreetMap": osm, "🛰 Satelital": satellite },
+  null,
+  { position: 'topright', collapsed: false }
+).addTo(map);
+
+// ─── MARKERS ──────────────────────────────────────
+let clusterGroup = null;
+let markers = [];
+let activeStatus = 'TODOS';
+let selectedMarker = null;
+
+function createIcon(d) {
+  const color = getColor(clasificar(d));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+    <filter id="sh" x="-30%" y="-10%" width="160%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+    <path filter="url(#sh)" d="M14 2C8.48 2 4 6.48 4 12c0 7.5 10 22 10 22s10-14.5 10-22c0-5.52-4.48-10-10-10z"
+          fill="${color}" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+    <circle cx="14" cy="12" r="4.5" fill="rgba(255,255,255,0.9)"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -38],
+    className: ''
+  });
+}
+
+function createIconSelected(d) {
+  const color = getColor(clasificar(d));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 36 46">
+    <filter id="sh2" x="-30%" y="-10%" width="160%" height="150%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.5)"/>
+    </filter>
+    <path filter="url(#sh2)" d="M18 2C10.27 2 4 8.27 4 16c0 9.75 14 30 14 30s14-20.25 14-30C32 8.27 25.73 2 18 2z"
+          fill="${color}" stroke="white" stroke-width="2.5"/>
+    <circle cx="18" cy="16" r="6" fill="white"/>
+    <circle cx="18" cy="16" r="3" fill="${color}"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [36, 46],
+    iconAnchor: [18, 46],
+    popupAnchor: [0, -48],
+    className: ''
+  });
+}
+
+function buildPopupHTML(d) {
+  const nivel = clasificar(d);
+  const color = getColor(nivel);
+  const bg    = getBg(nivel);
+  const pct   = parseInt(d.AVANCE) || 0;
+  return `
+    <div class="popup-header" style="background:${bg}">
+      <span class="popup-cct">${d.CCT}</span>
+      <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:.06em;">${nivel}</span>
+    </div>
+    <div class="popup-body">
+      <div class="popup-row">
+        <span class="popup-key">Proyecto</span>
+        <span class="popup-val">${d.PROYECTO}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-key">Contratista</span>
+        <span class="popup-val">${d.CONTRATISTA}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-key">Avance</span>
+        <span class="popup-val" style="color:${color};font-weight:700;">${d.AVANCE}</span>
+      </div>
+      <div class="popup-avance-track">
+        <div class="popup-avance-fill" style="width:${Math.min(pct,100)}%;background:${color};"></div>
+      </div>
+      <div class="popup-row" style="margin-top:6px;">
+        <span class="popup-key">Valor</span>
+        <span class="popup-val">${d.VALOR}</span>
+      </div>
+      <div class="popup-row">
+        <span class="popup-key">Contrato</span>
+        <span class="popup-val" style="font-size:10px;font-family:monospace;">${d.CONTRATO}</span>
+      </div>
+    </div>
+  `;
+}
+
+function buildMarkers(filteredData) {
+  if (clusterGroup) map.removeLayer(clusterGroup);
+  markers = [];
+
+  // Plain layer group — no clustering, all markers visible at every zoom
+  clusterGroup = L.layerGroup();
+
+  filteredData.forEach(d => {
+    const marker = L.marker([d.Y, d.X], {
+      icon: createIcon(d),
+      data: d
+    });
+
+    marker.bindTooltip(`${d.CCT} — ${clasificar(d)} (${d.AVANCE})`, {
+      className: 'custom-tooltip',
+      direction: 'top',
+      offset: [0, -30],
+      opacity: 1
+    });
+
+    const popupContent = buildPopupHTML(d);
+    marker.bindPopup(popupContent, {
+      maxWidth: 260,
+      closeButton: true,
+      className: ''
+    });
+
+    marker.on('click', function() {
+      if (selectedMarker && selectedMarker !== this) {
+        selectedMarker.setIcon(createIcon(selectedMarker.options.data));
+      }
+      this.setIcon(createIconSelected(this.options.data));
+      selectedMarker = this;
+      showDetail(d);
+      highlightListItem(d.CCT);
+    });
+
+    markers.push(marker);
+    clusterGroup.addLayer(marker);
+  });
+
+  map.addLayer(clusterGroup);
+}
+
+// ─── DETAIL PANEL ─────────────────────────────────
+function showDetail(d) {
+  const nivel = clasificar(d);
+  const color = getColor(nivel);
+  const bg    = getBg(nivel);
+  const pct   = parseInt(d.AVANCE) || 0;
+  const sp = document.getElementById('selected-panel');
+  const ph = document.getElementById('sp-placeholder-section');
+  const sc = document.getElementById('sp-content');
+
+  sc.innerHTML = `
+    <div style="background:${bg};border-radius:6px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
+      <div style="font-family:monospace;font-size:13px;font-weight:700;color:white;flex:1;">${d.CCT}</div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:.08em;background:rgba(0,0,0,0.15);padding:3px 8px;border-radius:3px;">${nivel}</div>
+    </div>
+    <div class="sp-field"><span class="sp-key">Proyecto</span><span class="sp-val">${d.PROYECTO}</span></div>
+    <div class="sp-field"><span class="sp-key">Contratista</span><span class="sp-val">${d.CONTRATISTA}</span></div>
+    <div class="sp-field"><span class="sp-key">Contrato</span><span class="sp-val" style="font-family:monospace;font-size:11px;">${d.CONTRATO}</span></div>
+    <div class="sp-field"><span class="sp-key">Valor</span><span class="sp-val" style="font-weight:600;">${d.VALOR}</span></div>
+    <div class="sp-field"><span class="sp-key">Estimado</span><span class="sp-val">${d.ESTIMADO}</span></div>
+    <div class="sp-field"><span class="sp-key">Actividades</span><span class="sp-val">${d.ACTIVIDADES}</span></div>
+    <div class="sp-field" style="margin-bottom:4px;"><span class="sp-key">Avance</span><span class="sp-val" style="font-weight:700;color:${color};">${d.AVANCE}</span></div>
+    <div class="avance-bar"><div class="avance-fill" style="width:${Math.min(pct,100)}%;background:${color};"></div></div>
+    ${d.COMENTARIOS ? `<div class="sp-field" style="margin-top:8px;"><span class="sp-key">Notas</span><span class="sp-val" style="color:#5A6478;">${d.COMENTARIOS}</span></div>` : ''}
+  `;
+
+  sp.style.display = 'block';
+  ph.style.display = 'none';
+
+  const bodyDetalle   = document.getElementById('body-detalle');
+  const toggleDetalle = document.getElementById('toggle-detalle');
+  if (bodyDetalle && bodyDetalle.classList.contains('collapsed')) {
+    bodyDetalle.classList.remove('collapsed');
+    toggleDetalle.classList.remove('collapsed');
+  }
+}
+
+function highlightListItem(cct) {
+  document.querySelectorAll('.result-item').forEach(el => {
+    el.style.background = '';
+    el.style.borderColor = 'transparent';
+  });
+  const target = document.querySelector(`.result-item[data-cct="${cct}"]`);
+  if (target) {
+    target.style.background = '#EEF2FB';
+    target.style.borderColor = '#3B6FD4';
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+// ─── RESULTS LIST ─────────────────────────────────
+function buildResultsList(filteredData) {
+  const list = document.getElementById('results-list');
+  const noRes = document.getElementById('no-results');
+  const header = document.getElementById('results-header');
+
+  list.querySelectorAll('.result-item').forEach(el => el.remove());
+
+  if (filteredData.length === 0) {
+    noRes.style.display = 'block';
+    return;
+  }
+  noRes.style.display = 'none';
+
+  filteredData.forEach(d => {
+    const nivel = clasificar(d);
+    const color = getColor(nivel);
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.dataset.cct = d.CCT;
+    item.innerHTML = `
+      <div class="ri-dot" style="background:${color};"></div>
+      <span class="ri-cct">${d.CCT}</span>
+      <span class="ri-proj">${d.PROYECTO}</span>
+      <span class="ri-status" style="background:${color}1A;color:${color};">${nivel}</span>
+    `;
+    item.addEventListener('click', () => {
+      const marker = markers.find(m => m.options.data.CCT === d.CCT);
+      if (marker) {
+        map.setView([d.Y, d.X], 14, { animate: true });
+        if (selectedMarker && selectedMarker !== marker) {
+          selectedMarker.setIcon(createIcon(selectedMarker.options.data));
+        }
+        marker.setIcon(createIconSelected(d));
+        selectedMarker = marker;
+        marker.openPopup();
+        showDetail(d);
+        highlightListItem(d.CCT);
+      }
+    });
+    list.appendChild(item);
+  });
+}
+
+// ─── CHARTS ───────────────────────────────────────
+let statusChart = null;
+
+function buildCharts(filteredData, proj, ctr) {
+  const total = filteredData.length;
+
+  // ── Conteo por nivel calculado desde % AVANCE ──
+  const counts = {};
+  NIVEL_CONFIG.forEach(n => counts[n.key] = 0);
+  filteredData.forEach(d => {
+    const k = clasificar(d);
+    if (counts[k] !== undefined) counts[k]++;
+  });
+
+  const labels = NIVEL_CONFIG.map(n => n.label.toUpperCase());
+  const values = NIVEL_CONFIG.map(n => counts[n.key]);
+  const colors = NIVEL_CONFIG.map(n => n.color);
+
+  // ── Donut ──
+  const ctx = document.getElementById('statusChart').getContext('2d');
+  if (statusChart) statusChart.destroy();
+  statusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }] },
+    options: {
+      cutout: '72%', responsive: false, animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c) => ` ${c.label}: ${c.raw} (${total > 0 ? Math.round(c.raw/total*100) : 0}%)` } }
+      }
+    }
+  });
+
+  // ── Leyenda donut ──
+  const leg = document.getElementById('legend-container');
+  leg.innerHTML = '';
+  NIVEL_CONFIG.forEach(n => {
+    const val = counts[n.key];
+    const pct = total > 0 ? Math.round(val/total*100) : 0;
+    leg.innerHTML += `
+      <div class="legend-item">
+        <div class="legend-swatch" style="background:${n.color};"></div>
+        <span class="legend-label">${n.label.toUpperCase()}</span>
+        <span class="legend-val">${val}</span>
+        <span class="legend-pct">(${pct}%)</span>
+      </div>`;
+  });
+
+  // ── Badge de filtros activos ──
+  const badge = document.getElementById('filter-badge');
+  const tags = [];
+  if (proj) tags.push(`<span class="fb-tag">Proyecto: ${proj}</span>`);
+  if (ctr)  tags.push(`<span class="fb-tag">Contratista: ${ctr}</span>`);
+  if (tags.length) {
+    badge.innerHTML = `<span class="fb-icon">⚑</span> Filtros activos: ${tags.join('')}`;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // ── % Avance promedio por Contratista ──
+  const ctrAvance = {}, ctrCnt = {};
+  filteredData.forEach(d => {
+    const p = parseInt(d.AVANCE) || 0;
+    ctrAvance[d.CONTRATISTA] = (ctrAvance[d.CONTRATISTA] || 0) + p;
+    ctrCnt[d.CONTRATISTA]    = (ctrCnt[d.CONTRATISTA]    || 0) + 1;
+  });
+  const ctrArr = Object.keys(ctrAvance).map(name => ({
+    name, avg: ctrCnt[name] > 0 ? Math.round(ctrAvance[name]/ctrCnt[name]) : 0
+  })).sort((a,b) => b.avg - a.avg);
+
+  const barsEl = document.getElementById('contratistas-bars');
+  barsEl.innerHTML = '';
+  ctrArr.forEach(({ name, avg }) => {
+    const nivel = NIVEL_CONFIG.find(n => avg >= n.min && (n.max === 999 ? avg >= n.min : avg < n.max));
+    const barColor = nivel ? nivel.color : '#8C96A8';
+    barsEl.innerHTML += `
+      <div class="bar-row">
+        <div class="bar-meta"><strong>${name}</strong><span style="color:${barColor};">${avg}%</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(avg,100)}%;background:${barColor};"></div></div>
+      </div>`;
+  });
+
+  // ── % Avance promedio por Proyecto ──
+  const proyAvance = {}, proyCnt = {};
+  filteredData.forEach(d => {
+    const p = parseInt(d.AVANCE) || 0;
+    proyAvance[d.PROYECTO] = (proyAvance[d.PROYECTO] || 0) + p;
+    proyCnt[d.PROYECTO]    = (proyCnt[d.PROYECTO]    || 0) + 1;
+  });
+  const proyArr = Object.keys(proyAvance).map(name => ({
+    name, avg: proyCnt[name] > 0 ? Math.round(proyAvance[name]/proyCnt[name]) : 0, n: proyCnt[name]
+  })).sort((a,b) => b.avg - a.avg);
+
+  const proyEl = document.getElementById('proyectos-bars');
+  proyEl.innerHTML = '';
+  proyArr.forEach(({ name, avg, n }) => {
+    const nivel = NIVEL_CONFIG.find(nv => avg >= nv.min && (nv.max === 999 ? avg >= nv.min : avg < nv.max));
+    const barColor = nivel ? nivel.color : '#8C96A8';
+    proyEl.innerHTML += `
+      <div class="bar-row">
+        <div class="bar-meta">
+          <strong>${name}</strong>
+          <span style="color:${barColor};">${avg}% <span style="color:var(--text-muted);font-weight:400;">(${n})</span></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(avg,100)}%;background:${barColor};"></div></div>
+      </div>`;
+  });
+}
+
+// ─── STATS ────────────────────────────────────────
+function updateStats(filteredData, baseData) {
+  document.getElementById('visible-count').textContent = filteredData.length;
+  document.getElementById('dl-total').textContent = filteredData.length;
+
+  // Pills → conteos del BASE (sin filtro de nivel) usando clasificar()
+  const baseCounts = {};
+  NIVEL_CONFIG.forEach(n => baseCounts[n.key] = 0);
+  baseData.forEach(d => {
+    const k = clasificar(d);
+    if (baseCounts[k] !== undefined) baseCounts[k]++;
+  });
+
+  document.getElementById('pc-todos').textContent    = baseData.length;
+  document.getElementById('pc-bajo').textContent     = baseCounts.BAJO;
+  const medioEl = document.getElementById('pc-medio');     if (medioEl)    medioEl.textContent    = baseCounts.MEDIO;
+  const buenoEl = document.getElementById('pc-bueno');     if (buenoEl)    buenoEl.textContent    = baseCounts.BUENO;
+  const avanzEl = document.getElementById('pc-avanzado');  if (avanzEl)    avanzEl.textContent    = baseCounts.AVANZADO;
+  document.getElementById('pc-optimo').textContent   = baseCounts.OPTIMO;
+  const termEl  = document.getElementById('pc-terminado'); if (termEl)     termEl.textContent     = baseCounts.TERMINADO;
+}
+
+// ─── FILTER LOGIC ─────────────────────────────────
+function applyFilters() {
+  const proj = document.getElementById('f-proyecto').value;
+  const ctr  = document.getElementById('f-contratista').value;
+  const cct  = document.getElementById('f-cct').value.trim().toUpperCase();
+
+  // baseData = todos los filtros activos EXCEPTO el de estatus
+  const baseData = DATA.filter(d => {
+    if (proj && d.PROYECTO !== proj) return false;
+    if (ctr  && d.CONTRATISTA !== ctr) return false;
+    if (cct  && !d.CCT.includes(cct)) return false;
+    return true;
+  });
+
+  // filtered = baseData + filtro de nivel (calculado desde % AVANCE)
+  const filtered = activeStatus === 'TODOS'
+    ? baseData
+    : baseData.filter(d => clasificar(d) === activeStatus);
+
+  buildMarkers(filtered);
+  buildResultsList(filtered);
+  updateStats(filtered, baseData);
+  buildCharts(filtered, proj, ctr);
+}
+
+// ─── POPULATE DROPDOWNS ───────────────────────────
+function populateDropdowns() {
+  const proyectos = [...new Set(DATA.map(d => d.PROYECTO))].sort();
+  const contratistas = [...new Set(DATA.map(d => d.CONTRATISTA))].sort();
+
+  const fproy = document.getElementById('f-proyecto');
+  proyectos.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p; opt.textContent = p;
+    fproy.appendChild(opt);
+  });
+
+  const fctr = document.getElementById('f-contratista');
+  contratistas.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    fctr.appendChild(opt);
+  });
+}
+
+// ─── EVENT LISTENERS ──────────────────────────────
+document.getElementById('f-proyecto').addEventListener('change', applyFilters);
+document.getElementById('f-contratista').addEventListener('change', applyFilters);
+document.getElementById('f-cct').addEventListener('input', debounce(applyFilters, 300));
+
+document.querySelectorAll('.status-pill').forEach(pill => {
+  pill.addEventListener('click', function() {
+    document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+    this.classList.add('active');
+    activeStatus = this.dataset.status;
+    applyFilters();
+  });
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  document.getElementById('f-proyecto').value = '';
+  document.getElementById('f-contratista').value = '';
+  document.getElementById('f-cct').value = '';
+  activeStatus = 'TODOS';
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('.status-pill[data-status="TODOS"]').classList.add('active');
+  if (selectedMarker) {
+    selectedMarker.setIcon(createIcon(selectedMarker.options.data));
+    selectedMarker = null;
+  }
+  document.getElementById('selected-panel').style.display = 'none';
+  document.getElementById('sp-placeholder-section').style.display = '';
+  applyFilters();
+  map.setView([16.888, -99.855], 10, { animate: true });
+});
+
+map.on('popupclose', () => {
+  const badge = document.getElementById('map-info-badge');
+  badge.style.opacity = '1';
+});
+map.on('popupopen', () => {
+  const badge = document.getElementById('map-info-badge');
+  badge.style.opacity = '0';
+});
+
+function debounce(fn, ms) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+// ─── COLLAPSIBLE PANELS ───────────────────────────
+function makeCollapsible(headerId, bodyId) {
+  const header = document.getElementById(headerId);
+  const body   = document.getElementById(bodyId);
+  if (!header || !body) return;
+  header.addEventListener('click', () => {
+    const collapsed = body.classList.toggle('collapsed');
+    header.classList.toggle('collapsed', collapsed);
+  });
+}
+
+// Sidebar izquierdo
+makeCollapsible('toggle-filters', 'body-filters');
+makeCollapsible('toggle-results', 'body-results');
+
+// Panel derecho
+makeCollapsible('toggle-donut',        'body-donut');
+makeCollapsible('toggle-contratistas', 'body-contratistas');
+makeCollapsible('toggle-proyectos',    'body-proyectos');
+makeCollapsible('toggle-detalle',      'body-detalle');
+
+// ─── INIT ─────────────────────────────────────────
+populateDropdowns();
+applyFilters();
+
+// ─── CARGA DE DATOS (CSV / XLSX) ──────────────────
+// Columnas requeridas en el archivo (mayúsculas, sin espacios extra)
+const REQUIRED_COLS = ['CCT','PROYECTO','CONTRATISTA','CONTRATO','X','Y'];
+
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3500);
+}
+
+function rowsToData(rows) {
+  // rows: array of objects con claves = encabezados del archivo
+  const normalize = k => k.trim().toUpperCase().replace(/\s+/g,'_');
+  // Detectar nombres de columnas normalizados
+  if (!rows.length) throw new Error('El archivo está vacío.');
+  const sample = rows[0];
+  const keys = Object.keys(sample);
+  const keyMap = {};
+  keys.forEach(k => keyMap[normalize(k)] = k);
+
+  // Mapeo flexible: acepta MONTO o VALOR, % AVANCE o %_AVANCE o AVANCE
+  const get = (norm, row) => {
+    const aliases = {
+      'VALOR':   ['VALOR','MONTO','IMPORTE'],
+      'AVANCE':  ['%_AVANCE','%AVANCE','AVANCE','%_AVANCE_'],
+      'ESTIMADO':['ESTIMADO','MONTO_ESTIMADO'],
+      'ACTIVIDADES':['ACTIVIDADES','ACTIVIDAD'],
+      'COMENTARIOS':['COMENTARIOS','COMENTARIO','NOTAS'],
+      'STATUS':  ['STATUS','ESTATUS','ESTADO'],
+    };
+    const list = aliases[norm] || [norm];
+    for (const a of list) {
+      if (keyMap[a]) return String(row[keyMap[a]] ?? '').trim();
+    }
+    return '';
+  };
+
+  // Validar columnas mínimas
+  for (const req of REQUIRED_COLS) {
+    const aliases = { 'X':['X','LONGITUD','LON','LNG'], 'Y':['Y','LATITUD','LAT'] };
+    const list = aliases[req] || [req];
+    if (!list.some(a => keyMap[a])) throw new Error(`Columna requerida no encontrada: ${req}`);
+  }
+
+  const getCoord = (norm, row) => {
+    const aliases = { 'X':['X','LONGITUD','LON','LNG'], 'Y':['Y','LATITUD','LAT'] };
+    const list = aliases[norm] || [norm];
+    for (const a of list) {
+      if (keyMap[a]) return parseFloat(row[keyMap[a]]);
+    }
+    return NaN;
+  };
+
+  return rows
+    .filter(row => getCoord('X', row) && getCoord('Y', row))  // descartar sin coords
+    .map(row => ({
+      CONTRATO:    get('CONTRATO', row)    || '—',
+      PROYECTO:    get('PROYECTO', row)    || '—',
+      CONTRATISTA: get('CONTRATISTA', row) || '—',
+      CCT:         get('CCT', row)         || '—',
+      VALOR:       get('VALOR', row)       || '—',
+      ESTIMADO:    get('ESTIMADO', row)    || '—',
+      AVANCE:      get('AVANCE', row)      || '0%',
+      STATUS:      get('STATUS', row)      || '—',
+      ACTIVIDADES: get('ACTIVIDADES', row) || '—',
+      COMENTARIOS: get('COMENTARIOS', row) || '',
+      X: getCoord('X', row),
+      Y: getCoord('Y', row),
+    }));
+}
+
+function loadNewData(records) {
+  if (!records.length) throw new Error('No se encontraron registros con coordenadas válidas.');
+
+  // Reemplazar DATA global
+  DATA.length = 0;
+  records.forEach(r => DATA.push(r));
+
+  // Actualizar contador total en header
+  document.getElementById('total-fixed').textContent = DATA.length;
+
+  // Repoblar dropdowns
+  const fproy = document.getElementById('f-proyecto');
+  const fctr  = document.getElementById('f-contratista');
+  // Limpiar manteniendo opción vacía
+  while (fproy.options.length > 1) fproy.remove(1);
+  while (fctr.options.length  > 1) fctr.remove(1);
+  [...new Set(DATA.map(d => d.PROYECTO))].sort().forEach(p => {
+    const o = document.createElement('option'); o.value = p; o.textContent = p; fproy.appendChild(o);
+  });
+  [...new Set(DATA.map(d => d.CONTRATISTA))].sort().forEach(c => {
+    const o = document.createElement('option'); o.value = c; o.textContent = c; fctr.appendChild(o);
+  });
+
+  // Reset filtros y redibujar
+  document.getElementById('f-proyecto').value = '';
+  document.getElementById('f-contratista').value = '';
+  document.getElementById('f-cct').value = '';
+  activeStatus = 'TODOS';
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('.status-pill[data-status="TODOS"]').classList.add('active');
+  if (selectedMarker) { selectedMarker = null; }
+  document.getElementById('selected-panel').style.display = 'none';
+  document.getElementById('sp-placeholder-section').style.display = '';
+
+  applyFilters();
+
+  // Centrar mapa en nuevos datos
+  const lats = DATA.map(d => d.Y), lons = DATA.map(d => d.X);
+  const bounds = L.latLngBounds(
+    [Math.min(...lats), Math.min(...lons)],
+    [Math.max(...lats), Math.max(...lons)]
+  );
+  map.fitBounds(bounds, { padding: [40, 40], animate: true });
+}
+
+function parseFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try {
+      let rows;
+      if (ext === 'csv') {
+        // Parsear CSV manualmente respetando comillas
+        const text = e.target.result;
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim());
+        rows = lines.slice(1).map(line => {
+          // Split respetando campos entre comillas
+          const vals = [];
+          let cur = '', inQ = false;
+          for (const ch of line + ',') {
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+            else cur += ch;
+          }
+          const obj = {};
+          headers.forEach((h, i) => obj[h] = vals[i] ?? '');
+          return obj;
+        });
+      } else {
+        // Excel via SheetJS
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      }
+
+      const records = rowsToData(rows);
+      loadNewData(records);
+      showToast(`✓ ${records.length} registros cargados desde "${file.name}"`, 'ok');
+    } catch (err) {
+      showToast(`✗ Error: ${err.message}`, 'err');
+      console.error(err);
+    }
+    document.getElementById('drop-overlay').classList.remove('visible');
+  };
+
+  reader.onerror = () => showToast('✗ No se pudo leer el archivo.', 'err');
+
+  if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+// ── Eventos del botón y drop ───────────────────────
+document.getElementById('btn-upload').addEventListener('click', () => {
+  document.getElementById('drop-overlay').classList.add('visible');
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) parseFile(e.target.files[0]);
+  e.target.value = ''; // reset para permitir recargar mismo archivo
+});
+
+document.getElementById('drop-close').addEventListener('click', () => {
+  document.getElementById('drop-overlay').classList.remove('visible');
+});
+
+// Drag & drop sobre toda la ventana
+window.addEventListener('dragover', e => {
+  e.preventDefault();
+  document.getElementById('drop-overlay').classList.add('visible');
+  document.getElementById('drop-box').classList.add('drag-over');
+});
+window.addEventListener('dragleave', e => {
+  if (!e.relatedTarget) {
+    document.getElementById('drop-overlay').classList.remove('visible');
+    document.getElementById('drop-box').classList.remove('drag-over');
+  }
+});
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('drop-box').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) parseFile(file);
+  else document.getElementById('drop-overlay').classList.remove('visible');
+});
+</script>
+</body>
+</html>
